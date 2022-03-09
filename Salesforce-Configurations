@@ -1,0 +1,48 @@
+##How to query from Salesforce##
+
+		<salesforce:query doc:name="Query Base Offer Spec" doc:id="1c321c57-6d66-4441-a5f8-05205c6259b8" config-ref="Salesforce_Config" target="objectResponse">
+			<salesforce:salesforce-query><![CDATA[SELECT Id FROM vlocity_cmt__ObjectClass__c WHERE Name = 'BASE Offer Spec Type']]></salesforce:salesforce-query>
+		</salesforce:query>
+    
+##Upert data in Salesforce## 
+
+  <salesforce:upsert doc:name="Upsert Product Offer" doc:id="93f097a2-1ef9-4346-aac5-19ae0da190bb" config-ref="Salesforce_Config" objectType="Product2" externalIdFieldName="Component_ID__c" target="productOfferResponse">
+			<salesforce:records ><![CDATA[#[vars.createProductOffer]]]></salesforce:records>
+		</salesforce:upsert>
+    
+##How to invoke Data Raptor##  
+
+<ee:set-variable variableName="createPriceDefaultZero" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+   "bundleName" : "DR-DC2-CreatePriceDefaultZero",
+   "objectList" : {
+      "OfferId": vars.productOfferSFID
+   },
+   "bulkUpload" : false
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:invoke-apex-rest-method className="DRGlobal" methodName="processPost^/vlocity_cmt/v2/DataRaptor^HttpPost^String" doc:name="Invoke apex rest method" doc:id="d3c6b1f5-94e4-4d32-b61d-fc6b80e348ea" config-ref="Salesforce_Config" target="createPriceDefaultZeroResponse" >
+			<salesforce:request ><![CDATA[#[vars.createPriceDefaultZero]]]></salesforce:request>
+		</salesforce:invoke-apex-rest-method>
+    
+##How to Create Records in Salesforce##  
+
+		<salesforce:create doc:name="Create" doc:id="b4ab807b-79ef-4bfc-920e-5f70fdf0e60c" config-ref="Salesforce_Config" type="vlocity_cmt__CatalogProductRelationship__c" target="catalogProductRelationshipResponse">
+			<salesforce:records><![CDATA[#[vars.catalogProductRelationship]]]></salesforce:records>
+		</salesforce:create>
+    
+##Invoke Apex Class##
+
+		<salesforce:invoke-apex-rest-method className="vlc_CreatePO" methodName="doPost^/CreateProductOffer/^HttpPost^void" config-ref="Salesforce_Config" target="response" doc:name="Invoke apex rest method vlc_CreatePO">
+			<salesforce:request ><![CDATA[#[%dw 2.0
+output application/json
+---
+{"strs": write(vars.vipProductOfferLoad, "application/json")}]]]></salesforce:request>
+		</salesforce:invoke-apex-rest-method>
+    
+##How to invoke Integration Procedure##    
+
+	<salesforce:invoke-apex-rest-method className="IntegrationProcedureService" methodName="runIntegrationService^/vlocity_cmt/v1/integrationprocedure/DC2_LoadBillingOfferAttributes?queueableChainable=true^HttpPost^String" doc:name="Invoke apex rest method DC2_LoadBillingOfferAttributes" doc:id="5864d584-3946-4afe-9fc8-e0b9e41742ad" config-ref="Salesforce_Config" target="response" />
